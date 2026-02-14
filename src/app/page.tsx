@@ -1,65 +1,127 @@
-import Image from "next/image";
+const trendingFilms = [
+  { title: "The Red Shoes", year: 1948, genre: "Drama · Music" },
+  { title: "Past Lives", year: 2023, genre: "Romance · Drama" },
+  { title: "Chungking Express", year: 1994, genre: "Crime · Romance" },
+];
+
+const recentDiary = [
+  { title: "La Haine", date: "Watched 2 days ago", note: "Still crackles with urgency." },
+  {
+    title: "Portrait of a Lady on Fire",
+    date: "Watched this week",
+    note: "A slow burn with devastating payoff.",
+  },
+  {
+    title: "Moonlight",
+    date: "Rewatched",
+    note: "Quiet, intimate, and endlessly generous.",
+  },
+];
+
+const userLists = [
+  "Rainy Night Neo-Noirs",
+  "Cozy 90-Minute Watches",
+  "One-Location Thrillers",
+  "Autumn Rewatch Canon",
+];
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="film-grain min-h-screen px-6 py-10 md:px-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <header className="poster-card p-6 md:p-8">
+          <p className="text-sm tracking-[0.2em] text-ink-muted uppercase">
+            CineMood Dashboard
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          <h1 className="font-display mt-3 text-4xl leading-tight font-semibold md:text-5xl">
+            Welcome back, Ava.
+          </h1>
+          <p className="mt-3 max-w-2xl text-base text-ink-muted md:text-lg">
+            Keep your film diary warm, follow what the community is loving, and
+            find the right watch for your mood tonight.
+          </p>
+        </header>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <article className="poster-card p-5 lg:col-span-2">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-2xl font-semibold">
+                Trending Films
+              </h2>
+              <button className="rounded-full border border-border px-4 py-1.5 text-sm text-ink-muted transition hover:border-accent hover:text-accent">
+                Explore all
+              </button>
+            </div>
+
+            <ul className="grid gap-4 md:grid-cols-3">
+              {trendingFilms.map((film) => (
+                <li key={film.title} className="polaroid-card p-4">
+                  <div className="mb-3 aspect-[3/4] rounded-md bg-[linear-gradient(140deg,var(--color-accent-soft),#c6a27e)]" />
+                  <h3 className="font-display text-xl font-semibold">
+                    {film.title}
+                  </h3>
+                  <p className="text-sm text-ink-muted">{film.year}</p>
+                  <p className="mt-1 text-sm text-ink-muted">{film.genre}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="poster-card p-5">
+            <h2 className="font-display text-2xl font-semibold">
+              Mood Recommender
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Unsure what to watch? Tell us your vibe and we&apos;ll suggest the
+              perfect pick.
+            </p>
+            <button className="mt-5 w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-[#f9efe0] transition hover:bg-accent-soft">
+              Start mood match
+            </button>
+          </article>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="poster-card p-5">
+            <h2 className="font-display text-2xl font-semibold">
+              Recent Diary Entries
+            </h2>
+            <ul className="mt-4 space-y-3">
+              {recentDiary.map((entry) => (
+                <li
+                  key={entry.title}
+                  className="rounded-xl border border-border/80 bg-surface px-4 py-3"
+                >
+                  <p className="font-display text-xl font-semibold">
+                    {entry.title}
+                  </p>
+                  <p className="text-xs tracking-wide text-ink-muted uppercase">
+                    {entry.date}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-muted">{entry.note}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="poster-card p-5">
+            <h2 className="font-display text-2xl font-semibold">
+              Your Lists
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {userLists.map((list) => (
+                <li
+                  key={list}
+                  className="flex items-center justify-between rounded-xl border border-border/80 bg-surface px-4 py-3"
+                >
+                  <span>{list}</span>
+                  <span className="text-sm text-ink-muted">View</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </section>
+      </div>
+    </main>
   );
 }
