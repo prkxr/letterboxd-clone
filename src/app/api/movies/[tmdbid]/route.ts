@@ -1,28 +1,28 @@
 import { getTmdbMovieDetails } from "@/lib/movies/tmdb";
-import { NextResponse } from 'next/server';
+import { badRequest, ok } from "@/lib/api/http";
 
 type RouteContext = {
-  params: Promise<{ tmdbId: string }>;
+  params: Promise<{ tmdbid: string }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const { tmdbId } = await context.params;
-  const parsedTmdbId = Number.parseInt(tmdbId, 10);
+  const { tmdbid } = await context.params;
+  const parsedTmdbId = Number.parseInt(tmdbid, 10);
 
-  if (Number.isNaN(parsedTmdbId)) {
-    return NextResponse.json(
-      { error: 'Path parameter "tmdbId" must be a number.' },
-      { status: 400 },
-    );
+  if (Number.isNaN(parsedTmdbId) || parsedTmdbId <= 0) {
+    return badRequest('Path parameter "tmdbid" must be a positive number.');
   }
 
   try {
     const movie = await getTmdbMovieDetails(parsedTmdbId);
-    return NextResponse.json({ movie });
+    return ok({ movie });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unexpected error fetching movie details.';
+    const message = error instanceof Error ? error.message : "Unexpected error fetching movie details.";
 
-    return NextResponse.json({ error: message }, { status: 502 });
+    if (message.includes("(404")) {
+      return Response.json({ error: `Movie with tmdbId ${parsedTmdbId} was not found.` }, { status: 404 });
+    }
+
+    return Response.json({ error: message }, { status: 502 });
   }
 }

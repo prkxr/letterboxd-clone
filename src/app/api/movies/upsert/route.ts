@@ -1,55 +1,27 @@
-import { prisma } from '@/lib/prisma';
-import { getTmdbMovieDetails } from '@/lib/movies/tmdb';
-import { NextResponse } from 'next/server';
+import { upsertMovieFromTmdb } from "@/lib/movies/store";
+import { badRequest, ok, parseJson } from "@/lib/api/http";
 
 type UpsertMovieRequestPayload = {
   tmdbId?: number;
 };
 
 export async function POST(request: Request) {
-  let payload: UpsertMovieRequestPayload;
+  const payload = await parseJson<UpsertMovieRequestPayload>(request);
 
-  try {
-    payload = (await request.json()) as UpsertMovieRequestPayload;
-  } catch {
-    return NextResponse.json(
-      { error: 'Request body must be valid JSON.' },
-      { status: 400 },
-    );
+  if (!payload) {
+    return badRequest("Request body must be valid JSON.");
   }
 
   const parsedTmdbId = Number(payload.tmdbId);
-
   if (!Number.isInteger(parsedTmdbId) || parsedTmdbId <= 0) {
-    return NextResponse.json(
-      { error: 'Body field "tmdbId" must be a positive integer.' },
-      { status: 400 },
-    );
+    return badRequest('Body field "tmdbId" must be a positive integer.');
   }
 
   try {
-    const movieFromTmdb = await getTmdbMovieDetails(parsedTmdbId);
-
-    const movie = await prisma.movie.upsert({
-      where: { tmdb_id: movieFromTmdb.tmdbId },
-      create: {
-        tmdb_id: movieFromTmdb.tmdbId,
-        title: movieFromTmdb.title,
-        year: movieFromTmdb.year,
-        poster_url: movieFromTmdb.posterUrl,
-      },
-      update: {
-        title: movieFromTmdb.title,
-        year: movieFromTmdb.year,
-        poster_url: movieFromTmdb.posterUrl,
-      },
-    });
-
-    return NextResponse.json({ movie });
+    const movie = await upsertMovieFromTmdb(parsedTmdbId);
+    return ok({ movie });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unexpected error upserting movie.';
-
-    return NextResponse.json({ error: message }, { status: 502 });
+    const message = error instanceof Error ? error.message : "Unexpected error upserting movie.";
+    return Response.json({ error: message }, { status: 502 });
   }
 }

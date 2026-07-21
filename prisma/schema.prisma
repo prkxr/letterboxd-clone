@@ -4,21 +4,70 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // NO urls go here anymore!
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum PrivacyLevel {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+enum ActivityType {
+  LOG_CREATED
+  REVIEW_CREATED
+  LIST_CREATED
+  LIST_UPDATED
+  USER_FOLLOWED
+  REVIEW_LIKED
+  COMMENT_CREATED
+  WATCHLIST_ADDED
+}
+
+enum NotificationType {
+  NEW_FOLLOWER
+  REVIEW_LIKE
+  REVIEW_COMMENT
+  LIST_LIKE
+  TAG_MENTION
+  SYSTEM
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String?
-  username      String?        @unique
-  email         String?        @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  ratings       Rating[]
-  journals      JournalEntry[]
-  lists         List[]
+  id              String                 @id @default(cuid())
+  name            String?
+  username        String?                @unique
+  email           String?                @unique
+  emailVerified   DateTime?
+  image           String?
+  bio             String?                @db.Text
+  location        String?
+  website         String?
+  is_private      Boolean                @default(false)
+  role            UserRole               @default(USER)
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  ratings         Rating[]
+  journals        JournalEntry[]
+  lists           List[]
+  watchlist_items WatchlistItem[]
+  logs            FilmLog[]
+  reviews         Review[]
+  review_comments ReviewComment[]
+  review_likes    ReviewLike[]
+  followers       Follow[]               @relation("FollowTarget")
+  following       Follow[]               @relation("FollowSource")
+  activities      Activity[]
+  notifications   Notification[]
+  recommendations Recommendation[]
+  saved_filters   SavedDiscoveryFilter[]
 }
 
 model Account {
@@ -26,12 +75,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?  @db.Text
-  access_token      String?  @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?  @db.Text
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -56,14 +105,47 @@ model VerificationToken {
 }
 
 model Movie {
-  id          String         @id @default(cuid())
-  tmdb_id     Int            @unique
-  title       String
-  year        Int
-  poster_url  String?
-  ratings     Rating[]
-  journals    JournalEntry[]
-  list_movies ListMovie[]
+  id                String               @id @default(cuid())
+  tmdb_id           Int                  @unique
+  title             String
+  original_title    String?
+  year              Int
+  release_date      DateTime?
+  runtime_minutes   Int?
+  poster_url        String?
+  backdrop_url      String?
+  overview          String?              @db.Text
+  tagline           String?
+  language_code     String?
+  vote_average      Float?
+  vote_count        Int?
+  popularity        Float?
+  created_at        DateTime             @default(now())
+  updated_at        DateTime             @updatedAt
+  ratings           Rating[]
+  journals          JournalEntry[]
+  list_movies       ListMovie[]
+  watchlist_items   WatchlistItem[]
+  logs              FilmLog[]
+  reviews           Review[]
+  movie_genres      MovieGenre[]
+  recommendation_of RecommendationItem[]
+}
+
+model Genre {
+  id          String       @id @default(cuid())
+  tmdb_id     Int?         @unique
+  name        String       @unique
+  movie_genre MovieGenre[]
+}
+
+model MovieGenre {
+  movie_id String
+  genre_id String
+  movie    Movie  @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+  genre    Genre  @relation(fields: [genre_id], references: [id], onDelete: Cascade)
+
+  @@id([movie_id, genre_id])
 }
 
 model Rating {
@@ -72,8 +154,11 @@ model Rating {
   watched_date DateTime @default(now())
   user_id      String
   movie_id     String
-  user         User     @relation(fields: [user_id], references: [id])
-  movie        Movie    @relation(fields: [movie_id], references: [id])
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  movie        Movie    @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([movie_id])
 }
 
 model JournalEntry {
@@ -82,26 +167,228 @@ model JournalEntry {
   watched_date DateTime @default(now())
   user_id      String
   movie_id     String
-  user         User     @relation(fields: [user_id], references: [id])
-  movie        Movie    @relation(fields: [movie_id], references: [id])
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  movie        Movie    @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([movie_id])
+}
+
+model FilmLog {
+  id               String       @id @default(cuid())
+  watched_on       DateTime
+  rewatch          Boolean      @default(false)
+  contains_spoiler Boolean      @default(false)
+  rating           Float?
+  review_excerpt   String?      @db.Text
+  visibility       PrivacyLevel @default(PUBLIC)
+  user_id          String
+  movie_id         String
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  movie            Movie        @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+  tags             FilmLogTag[]
+
+  @@index([user_id, watched_on])
+  @@index([movie_id])
+}
+
+model Review {
+  id               String          @id @default(cuid())
+  title            String?
+  body             String          @db.Text
+  rating           Float?
+  contains_spoiler Boolean         @default(false)
+  visibility       PrivacyLevel    @default(PUBLIC)
+  user_id          String
+  movie_id         String
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  user             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  movie            Movie           @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+  comments         ReviewComment[]
+  likes            ReviewLike[]
+
+  @@index([user_id, created_at])
+  @@index([movie_id])
+}
+
+model ReviewComment {
+  id         String   @id @default(cuid())
+  body       String   @db.Text
+  review_id  String
+  user_id    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  review     Review   @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([review_id])
+  @@index([user_id])
+}
+
+model ReviewLike {
+  review_id  String
+  user_id    String
+  created_at DateTime @default(now())
+  review     Review   @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([review_id, user_id])
+  @@index([user_id])
+}
+
+model WatchlistItem {
+  id         String   @id @default(cuid())
+  priority   Int?
+  notes      String?  @db.Text
+  user_id    String
+  movie_id   String
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  movie      Movie    @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, movie_id])
+  @@index([user_id, created_at])
 }
 
 model List {
-  id          String      @id @default(cuid())
+  id          String       @id @default(cuid())
   list_name   String
-  description String?     @db.Text
+  description String?      @db.Text
   user_id     String
-  user        User        @relation(fields: [user_id], references: [id])
+  visibility  PrivacyLevel @default(PUBLIC)
+  featured    Boolean      @default(false)
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   movies      ListMovie[]
+  tags        ListTag[]
+
+  @@index([user_id, created_at])
 }
 
 model ListMovie {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   position Int
   list_id  String
   movie_id String
-  list     List   @relation(fields: [list_id], references: [id], onDelete: Cascade)
-  movie    Movie  @relation(fields: [movie_id], references: [id])
+  note     String? @db.Text
+  list     List    @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  movie    Movie   @relation(fields: [movie_id], references: [id], onDelete: Cascade)
 
   @@unique([list_id, movie_id])
+  @@index([list_id, position])
+}
+
+model Tag {
+  id         String       @id @default(cuid())
+  name       String       @unique
+  created_at DateTime     @default(now())
+  log_tags   FilmLogTag[]
+  list_tags  ListTag[]
+}
+
+model FilmLogTag {
+  log_id String
+  tag_id String
+  log    FilmLog @relation(fields: [log_id], references: [id], onDelete: Cascade)
+  tag    Tag     @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([log_id, tag_id])
+}
+
+model ListTag {
+  list_id String
+  tag_id  String
+  list    List   @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([list_id, tag_id])
+}
+
+model Follow {
+  follower_id  String
+  following_id String
+  created_at   DateTime @default(now())
+  follower     User     @relation("FollowSource", fields: [follower_id], references: [id], onDelete: Cascade)
+  following    User     @relation("FollowTarget", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@id([follower_id, following_id])
+  @@index([following_id])
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  actor_id    String
+  type        ActivityType
+  message     String
+  entity_id   String?
+  entity_type String?
+  created_at  DateTime     @default(now())
+  actor       User         @relation(fields: [actor_id], references: [id], onDelete: Cascade)
+
+  @@index([actor_id, created_at])
+  @@index([created_at])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  user_id     String
+  actor_id    String?
+  type        NotificationType
+  message     String
+  entity_id   String?
+  entity_type String?
+  read_at     DateTime?
+  created_at  DateTime         @default(now())
+  user        User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+}
+
+model SavedDiscoveryFilter {
+  id                String   @id @default(cuid())
+  name              String
+  user_id           String
+  include_genres    String[]
+  exclude_genres    String[]
+  min_year          Int?
+  max_year          Int?
+  min_runtime       Int?
+  max_runtime       Int?
+  min_vote_average  Float?
+  include_languages String[]
+  sort_by           String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model Recommendation {
+  id         String               @id @default(cuid())
+  user_id    String
+  prompt     String?
+  reason     String?
+  created_at DateTime             @default(now())
+  user       User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items      RecommendationItem[]
+
+  @@index([user_id, created_at])
+}
+
+model RecommendationItem {
+  id                String         @id @default(cuid())
+  recommendation_id String
+  movie_id          String
+  score             Float
+  explanation       String?
+  recommendation    Recommendation @relation(fields: [recommendation_id], references: [id], onDelete: Cascade)
+  movie             Movie          @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+
+  @@unique([recommendation_id, movie_id])
+  @@index([movie_id])
 }

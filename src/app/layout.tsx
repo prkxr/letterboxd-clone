@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Instrument_Sans } from "next/font/google";
+import MainNav from "@/components/main-nav";
 import "./globals.css";
 import "@/lib/env";
 
@@ -16,19 +17,16 @@ const bodyFont = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CineMood | Letterboxd Journal & Discovery",
+  title: "CineJournal | Social Movie Diary",
   description:
-    "Track your diary, explore trending films, curate lists, and get mood-based recommendations in one cinematic dashboard.",
+    "A cinematic movie-tracking platform with profiles, logs, reviews, lists, watchlists, social feeds, and discovery.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${displayFont.variable} ${bodyFont.variable} antialiased`}>
+      <body className={`${displayFont.variable} ${bodyFont.variable} film-grain`}> 
+        <MainNav />
         {children}
       </body>
     </html>
